@@ -1,11 +1,11 @@
 <template>
     <div class="container">
-        <div class="row justify-content-center">
+        <div class="row justify-content-center" v-if="showLogin">
             <div class="col-lg-6">
-                <b-form class="bg-white shadow-sm p-3" @submit="onSubmit" @reset="onReset" v-if="showLogin">
+                <b-form class="bg-white shadow-sm p-3" @submit="onSubmit" @reset="onReset">
                     <p>Sign in to start your session</p>
-                    <b-alert v-model="showDangerAlert" variant="danger" dismissible>
-                        {{dangerMessage}}
+                    <b-alert v-model="showLoginDangerAlert" variant="danger" dismissible>
+                        {{loginDangerMessage}}
                     </b-alert>
                     <b-form-group
                         id="input-group-1"
@@ -31,21 +31,68 @@
                             placeholder="Enter password"></b-form-input>
                     </b-form-group>
 
-                    <b-button type="submit" variant="primary">Submit</b-button>&nbsp;
+                    <b-button type="submit" variant="primary">Login</b-button>&nbsp;
                     <b-button type="reset" variant="danger">Reset</b-button>
                 </b-form>
             </div>
         </div>
 
-        <br />
-
-        <div class="row justify-content-center">
+        <div class="row justify-content-center mt-5" v-if="showListTasks">
             <div class="col-lg-12">
                 <div>
-                    <b-table bordered hover :items="tasks" :fields="taskTableFields" v-if="showTasks">
-                        
+                    <p>List Task</p>
+                    <b-table bordered hover :items="tasks" :fields="taskTableFields">
+                        <template v-slot:cell(no)="data">
+                            {{ data.index + 1 }}
+                        </template>
+
+                        <template v-slot:cell(ACTION)="data">
+                            <b-button v-on:click="taskDetail(data.item.id)" type="button" variant="outline-info">
+                                Details
+                            </b-button>
+                            &nbsp;
+                            <b-button v-on:click="taskDelete(data.item.id, data.item.title)" type="button" variant="outline-danger">
+                                Delete
+                            </b-button>
+                        </template>
                     </b-table>
                 </div>
+            </div>
+        </div>
+
+        <div class="row justify-content-center mt-5" v-if="showTaskForm">
+            <div class="col-lg-6">
+                <b-form class="bg-white shadow-sm p-3">
+                    <p>{{taskAction}} Task</p>
+                    <b-alert v-model="showTaskDangerAlert" variant="danger" dismissible>
+                        {{taskDangerMessage}}
+                    </b-alert>
+                    <b-alert v-model="showTaskSuccessAlert" variant="success" dismissible>
+                        {{taskSuccessMessage}}
+                    </b-alert>
+                    <b-form-group 
+                        id="add-task-group-1"
+                        label=""
+                        label-for="add-title">
+                        <b-form-input
+                            id="add-title"
+                            v-model="form.title"
+                            required
+                            placeholder="Enter title"></b-form-input>
+                    </b-form-group>
+                    <b-form-group 
+                        id="add-task-group-2"
+                        label=""
+                        label-for="add-note">
+                        <b-form-input
+                            id="add-note"
+                            v-model="form.note"
+                            required
+                            placeholder="Enter note"></b-form-input>
+                    </b-form-group>
+
+                    <b-button type="submit" variant="primary">{{taskAction}} Task</b-button>
+                </b-form>
             </div>
         </div>
     </div>
@@ -60,18 +107,27 @@ export default {
             showLogin: true,
             form: {
                 username: '',
-                password: ''
+                password: '',
+                title: '',
+                note: ''
             },
-            showDangerAlert: false,
-            dangerMessage: '',
+            showLoginDangerAlert: false,
+            showListTasks: true,
+            showTaskForm: true,
+            showTaskDangerAlert: false,
+            showTaskSuccessAlert: false,
+            loginDangerMessage: '',
+            taskDangerMessage: '',
+            taskSuccessMessage: '',
             token: '',
-            showTasks: true,
+            taskAction: 'Add',
             taskTableFields: [
                 { key: 'no', label: 'NO' },
-                { key: 'id', label: 'ID' },
+                { key: 'id', label: 'ID', colType: 'button' },
                 { key: 'title', label: 'TITLE' },
                 { key: 'note', label: 'NOTE' },
                 { key: 'is_completed', label: 'STATUS' },
+                'ACTION'
             ],
             tasks: []
         }
@@ -93,12 +149,12 @@ export default {
             })
             .then(response => {
                 self.token = response.data.data.token
-                self.showDangerAlert = false
+                self.showLoginDangerAlert = false
                 this.getTasks()
             })
             .catch(error => {
-                self.showDangerAlert = true
-                self.dangerMessage = error.response.data.message
+                self.showLoginDangerAlert = true
+                self.loginDangerMessage = error.response.data.message
             })
         },
         onReset: function(evt) {
@@ -144,6 +200,14 @@ export default {
             .catch(error => {
                 console.log(error.response)
             })
+        },
+        taskDetail: function(id) {
+            
+        },
+        taskDelete: function(id, title) {
+            if (confirm('Are you sure to delete task ' + title + ' ?')) {
+
+            }
         }
     }
 }
