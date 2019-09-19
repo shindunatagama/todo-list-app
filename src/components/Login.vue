@@ -62,7 +62,7 @@
 
         <div class="row justify-content-center mt-5" v-if="showTaskForm">
             <div class="col-lg-6">
-                <b-form class="bg-white shadow-sm p-3">
+                <b-form class="bg-white shadow-sm p-3" @submit="taskActionToAPI">
                     <p>{{taskAction}} Task</p>
                     <b-alert v-model="showTaskDangerAlert" variant="danger" dismissible>
                         {{taskDangerMessage}}
@@ -90,6 +90,16 @@
                             required
                             placeholder="Enter note"></b-form-input>
                     </b-form-group>
+                    <b-form-group 
+                        id="add-task-group-2"
+                        label=""
+                        label-for="add-status" v-if="showStatusInput">
+                        <b-form-input
+                            id="add-status"
+                            v-model="form.status"
+                            required
+                            placeholder="Enter status"></b-form-input>
+                    </b-form-group>
 
                     <b-button type="submit" variant="primary">{{taskAction}} Task</b-button>
                 </b-form>
@@ -109,13 +119,15 @@ export default {
                 username: '',
                 password: '',
                 title: '',
-                note: ''
+                note: '',
+                status: ''
             },
             showLoginDangerAlert: false,
             showListTasks: true,
             showTaskForm: true,
             showTaskDangerAlert: false,
             showTaskSuccessAlert: false,
+            showStatusInput: false,
             loginDangerMessage: '',
             taskDangerMessage: '',
             taskSuccessMessage: '',
@@ -205,8 +217,43 @@ export default {
             
         },
         taskDelete: function(id, title) {
+            var self = this;
             if (confirm('Are you sure to delete task ' + title + ' ?')) {
-
+                axios({
+                    headers: { 
+                        'Content-Type': 'text/plain',
+                        'Authorization': `Bearer ${ self.token }`
+                    },
+                    method: 'delete',
+                    url: 'http://localhost:1323/DeleteTask/' + id
+                })
+                .then(self.getTasks())
+                .catch(error => {
+                    console.log(error.response)
+                })
+            }
+        },
+        taskActionToAPI: function(evt) {
+            evt.preventDefault()
+            var self = this
+            if (self.taskAction == 'Add') {
+                axios({
+                    headers: { 
+                        'Content-Type': 'text/plain',
+                        'Authorization': `Bearer ${ self.token }`
+                    },
+                    method: 'post',
+                    url: 'http://localhost:1323/AddTask',
+                    data: {
+                        username: self.form.username,
+                        title: self.form.title,
+                        note: self.form.note
+                    }
+                })
+                .then(self.getTasks())
+                .catch(error => {
+                    console.log(error.response)
+                })
             }
         }
     }
