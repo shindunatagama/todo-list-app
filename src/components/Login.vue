@@ -41,6 +41,9 @@
             <div class="col-lg-12">
                 <div>
                     <p>List Task</p>
+                    <b-button type="button" v-on:click="taskAdd()" variant="outline-success" class="mb-3 float-left">
+                        Add Task
+                    </b-button>
                     <b-table bordered hover :items="tasks" :fields="taskTableFields">
                         <template v-slot:cell(no)="data">
                             {{ data.index + 1 }}
@@ -48,7 +51,11 @@
 
                         <template v-slot:cell(ACTION)="data">
                             <b-button v-on:click="taskDetail(data.item.id)" type="button" variant="outline-info">
-                                Details
+                                Detail
+                            </b-button>
+                            &nbsp;
+                            <b-button v-on:click="taskEdit(data.item.id)" type="button" variant="outline-dark">
+                                Edit
                             </b-button>
                             &nbsp;
                             <b-button v-on:click="taskDelete(data.item.id, data.item.title)" type="button" variant="outline-danger">
@@ -60,7 +67,7 @@
             </div>
         </div>
 
-        <div class="row justify-content-center mt-5" v-if="showTaskForm">
+        <div class="row justify-content-center mt-3" v-if="showTaskForm">
             <div class="col-lg-6">
                 <b-form class="bg-white shadow-sm p-3" @submit="taskActionToAPI">
                     <p>{{taskAction}} Task</p>
@@ -101,7 +108,7 @@
                             placeholder="Enter status"></b-form-input>
                     </b-form-group>
 
-                    <b-button type="submit" variant="primary">{{taskAction}} Task</b-button>
+                    <b-button type="submit" variant="primary" v-if="showBtnTask">{{taskAction}} Task</b-button>
                 </b-form>
             </div>
         </div>
@@ -122,12 +129,14 @@ export default {
                 note: '',
                 status: ''
             },
+            taskId: '',
             showLoginDangerAlert: false,
-            showListTasks: true,
-            showTaskForm: true,
+            showListTasks: false,
+            showTaskForm: false,
             showTaskDangerAlert: false,
             showTaskSuccessAlert: false,
             showStatusInput: false,
+            showBtnTask: true,
             loginDangerMessage: '',
             taskDangerMessage: '',
             taskSuccessMessage: '',
@@ -208,13 +217,78 @@ export default {
                     indexData++
                 }
                 self.tasks = tasks
+                self.showLogin = false
+                self.showListTasks = true
             })
             .catch(error => {
                 console.log(error.response)
             })
         },
+        taskAdd: function() {
+            var self = this
+            self.showTaskForm = true
+            self.taskAction = 'Add'
+            self.showStatusInput = true
+            self.form.title = ''
+            self.form.note = ''
+            self.showBtnTask = true
+        },
         taskDetail: function(id) {
-            
+            var self = this;
+            axios({
+                headers: { 
+                    'Content-Type': 'text/plain',
+                    'Authorization': `Bearer ${ self.token }`
+                },
+                method: 'get',
+                url: 'http://localhost:1323/GetTask/' + id
+            })
+            .then(response => {
+                self.showTaskForm = true
+                self.taskAction = 'Detail'
+                self.showStatusInput = true
+                self.form.title = response.data.data[0].title
+                self.form.note = response.data.data[0].note
+                if (response.data.data[0].is_completed == '0') {
+                    self.form.status = 'Not Completed'
+                }
+                else {
+                    self.form.status = 'Completed'
+                }
+                self.showBtnTask = false
+            })
+            .catch(error => {
+                console.log(error.response)
+            })
+        },
+        taskEdit: function(id) {
+            var self = this;
+            axios({
+                headers: { 
+                    'Content-Type': 'text/plain',
+                    'Authorization': `Bearer ${ self.token }`
+                },
+                method: 'get',
+                url: 'http://localhost:1323/GetTask/' + id
+            })
+            .then(response => {
+                self.showTaskForm = true
+                self.taskAction = 'Edit'
+                self.showStatusInput = true
+                self.taskId = id
+                self.form.title = response.data.data[0].title
+                self.form.note = response.data.data[0].note
+                if (response.data.data[0].is_completed == '0') {
+                    self.form.status = 'Not Completed'
+                }
+                else {
+                    self.form.status = 'Completed'
+                }
+                self.showBtnTask = true
+            })
+            .catch(error => {
+                console.log(error.response)
+            })
         },
         taskDelete: function(id, title) {
             var self = this;
@@ -248,6 +322,27 @@ export default {
                         username: self.form.username,
                         title: self.form.title,
                         note: self.form.note
+                    }
+                })
+                .then(self.getTasks())
+                .catch(error => {
+                    console.log(error.response)
+                })
+            }
+            else if (self.taskAction == 'Edit') {
+                axios({
+                    headers: { 
+                        'Content-Type': 'text/plain',
+                        'Authorization': `Bearer ${ self.token }`
+                    },
+                    method: 'put',
+                    url: 'http://localhost:1323/UpdateTask',
+                    data: {
+                        id: self.taskId,
+                        username: self.form.username,
+                        title: self.form.title,
+                        note: self.form.note,
+                        is_completed: '0'
                     }
                 })
                 .then(self.getTasks())
