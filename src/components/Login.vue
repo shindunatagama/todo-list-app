@@ -41,6 +41,9 @@
             <div class="col-lg-12">
                 <div>
                     <p>List Task</p>
+                    <b-alert v-model="showTaskSuccessAlert" variant="success" dismissible>
+                        {{taskSuccessMessage}}
+                    </b-alert>
                     <b-button type="button" v-on:click="taskAdd()" variant="outline-success" class="mb-3 float-left">
                         Add Task
                     </b-button>
@@ -74,11 +77,8 @@
                     <b-alert v-model="showTaskDangerAlert" variant="danger" dismissible>
                         {{taskDangerMessage}}
                     </b-alert>
-                    <b-alert v-model="showTaskSuccessAlert" variant="success" dismissible>
-                        {{taskSuccessMessage}}
-                    </b-alert>
                     <b-form-group 
-                        id="add-task-group-1"
+                        id="form-task-group-1"
                         label=""
                         label-for="add-title">
                         <b-form-input
@@ -88,7 +88,7 @@
                             placeholder="Enter title"></b-form-input>
                     </b-form-group>
                     <b-form-group 
-                        id="add-task-group-2"
+                        id="form-task-group-2"
                         label=""
                         label-for="add-note">
                         <b-form-input
@@ -98,14 +98,14 @@
                             placeholder="Enter note"></b-form-input>
                     </b-form-group>
                     <b-form-group 
-                        id="add-task-group-2"
+                        id="form-task-group-3"
                         label=""
-                        label-for="add-status" v-if="showStatusInput">
-                        <b-form-input
+                        label-for="add-status" v-if="showInputStatus">
+                        <b-form-select 
                             id="add-status"
                             v-model="form.status"
-                            required
-                            placeholder="Enter status"></b-form-input>
+                            :options="statusOptions"
+                            required></b-form-select>
                     </b-form-group>
 
                     <b-button type="submit" variant="primary" v-if="showBtnTask">{{taskAction}} Task</b-button>
@@ -121,34 +121,38 @@ import axios from 'axios'
 export default {
     data: function() {
         return {
-            showLogin: true,
             form: {
                 username: '',
                 password: '',
                 title: '',
                 note: '',
-                status: ''
+                status: null
             },
-            taskId: '',
+            token: '',
+            showLogin: true,
             showLoginDangerAlert: false,
+            loginDangerMessage: '',
             showListTasks: false,
+            showTaskSuccessAlert: false,
+            taskSuccessMessage: '',
             showTaskForm: false,
             showTaskDangerAlert: false,
-            showTaskSuccessAlert: false,
-            showStatusInput: false,
-            showBtnTask: true,
-            loginDangerMessage: '',
             taskDangerMessage: '',
-            taskSuccessMessage: '',
-            token: '',
+            showInputStatus: false,
+            showBtnTask: false,
             taskAction: 'Add',
+            taskId: '',
             taskTableFields: [
                 { key: 'no', label: 'NO' },
-                { key: 'id', label: 'ID', colType: 'button' },
                 { key: 'title', label: 'TITLE' },
                 { key: 'note', label: 'NOTE' },
                 { key: 'is_completed', label: 'STATUS' },
                 'ACTION'
+            ],
+            statusOptions: [
+                { value: null, text: 'Select Status' },
+                { value: '0', text: 'Not Completed' },
+                { value: '1', text: 'Completed' }
             ],
             tasks: []
         }
@@ -183,7 +187,9 @@ export default {
             this.form.username = ''
             this.form.password = ''
             this.$nextTick(() => {
-                this.show = true
+                this.showLogin = true
+                this.showListTasks = false
+                this.showTaskForm = false
             })
         },
         getTasks: function() {
@@ -219,6 +225,7 @@ export default {
                 self.tasks = tasks
                 self.showLogin = false
                 self.showListTasks = true
+                self.showTaskForm = false
             })
             .catch(error => {
                 console.log(error.response)
@@ -228,7 +235,7 @@ export default {
             var self = this
             self.showTaskForm = true
             self.taskAction = 'Add'
-            self.showStatusInput = true
+            self.showInputStatus = true
             self.form.title = ''
             self.form.note = ''
             self.showBtnTask = true
@@ -246,15 +253,10 @@ export default {
             .then(response => {
                 self.showTaskForm = true
                 self.taskAction = 'Detail'
-                self.showStatusInput = true
+                self.showInputStatus = true
                 self.form.title = response.data.data[0].title
                 self.form.note = response.data.data[0].note
-                if (response.data.data[0].is_completed == '0') {
-                    self.form.status = 'Not Completed'
-                }
-                else {
-                    self.form.status = 'Completed'
-                }
+                self.form.status = response.data.data[0].is_completed
                 self.showBtnTask = false
             })
             .catch(error => {
@@ -274,16 +276,11 @@ export default {
             .then(response => {
                 self.showTaskForm = true
                 self.taskAction = 'Edit'
-                self.showStatusInput = true
+                self.showInputStatus = true
                 self.taskId = id
                 self.form.title = response.data.data[0].title
                 self.form.note = response.data.data[0].note
-                if (response.data.data[0].is_completed == '0') {
-                    self.form.status = 'Not Completed'
-                }
-                else {
-                    self.form.status = 'Completed'
-                }
+                self.form.status = response.data.data[0].is_completed
                 self.showBtnTask = true
             })
             .catch(error => {
@@ -324,7 +321,11 @@ export default {
                         note: self.form.note
                     }
                 })
-                .then(self.getTasks())
+                .then(response => {
+                    self.taskSuccessMessage = 'Task added successfully'
+                    self.showTaskSuccessAlert = true
+                    self.getTasks()
+                })
                 .catch(error => {
                     console.log(error.response)
                 })
@@ -342,10 +343,14 @@ export default {
                         username: self.form.username,
                         title: self.form.title,
                         note: self.form.note,
-                        is_completed: '0'
+                        is_completed: self.form.status
                     }
                 })
-                .then(self.getTasks())
+                .then(response => {
+                    self.taskSuccessMessage = 'Task updated successfully'
+                    self.showTaskSuccessAlert = true
+                    self.getTasks()
+                })
                 .catch(error => {
                     console.log(error.response)
                 })
