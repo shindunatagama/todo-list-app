@@ -16,10 +16,20 @@
                     <b-button class="is-warning" @click="deleteAllTodos">
                         Delete All Todos
                     </b-button>
+                    &nbsp;
+                    <b-button class="is-dark" @click="downloadCSV">
+                        Download as CSV
+                    </b-button>
+                </div>
+
+                <div class="level-right">
+                    <b-field>
+                        <b-input placeholder="Search Title" v-model="search"></b-input>
+                    </b-field>
                 </div>
 
                 <b-table 
-                    :data="todos"
+                    :data="filteredTodos"
                     :columns="columns"
                     default-sort="priority">
                     <template slot-scope="todos">
@@ -113,6 +123,10 @@
 import TodoDetailModal from "@/components/TodoDetailModal";
 import TodoEditModal from "@/components/TodoEditModal";
 import TodoAddModal from "@/components/TodoAddModal";
+
+import { saveAs } from 'file-saver';
+import PapaParse from 'papaparse'
+
 export default {
     name: "TodoTable",
     components: { TodoDetailModal, TodoEditModal, TodoAddModal },
@@ -136,7 +150,29 @@ export default {
             isAddModalActive: false,
             selectedTodo: {},
             completedTodos: 0,
-            pendingTodos: 0
+            pendingTodos: 0,
+            search: "",
+            sampleData: [{
+                "Column 1": "1-1",
+                "Column 2": "1-2",
+                "Column 3": "1-3",
+                "Column 4": "1-4"
+            }, {
+                "Column 1": "2-1",
+                "Column 2": "2-2",
+                "Column 3": "2-3",
+                "Column 4": "2-4"
+            }, {
+                "Column 1": "3-1",
+                "Column 2": "3-2",
+                "Column 3": "3-3",
+                "Column 4": "3-4"
+            }, {
+                "Column 1": 4,
+                "Column 2": 5,
+                "Column 3": 6,
+                "Column 4": 7
+            }]
         };
     },
     mounted() {
@@ -145,6 +181,13 @@ export default {
         }
 
         this.updateTodos();
+    },
+    computed: {
+        filteredTodos() {
+            return this.todos.filter(todo => {
+                return todo.title.toLowerCase().includes(this.search.toLowerCase())
+            })
+        }
     },
     methods: {
         openDetailModal(todo) {
@@ -162,6 +205,7 @@ export default {
                 highestId = Math.max.apply(Math, this.todos.map(item => item.id));
             }
 
+            // set priority color
             var dotPriorityColor = "#11cdef";
             if (item.priority == "High Priority") {
                 dotPriorityColor = "#f5365c";
@@ -232,18 +276,6 @@ export default {
         },
         completeTodo(item) {
             const todo = this.findTodo(item);
-
-            // Apply the updated values
-            if (item.completed == true) {
-                todo.completed = false;
-            }
-            else if (item.completed == false) {
-                todo.completed = true;
-            }
-            else {
-                todo.completed = false;
-            }
-
             // save the updated array in localstorage
             this.saveLocalStorageTodos();
             this.updateTodos();
@@ -258,6 +290,24 @@ export default {
         updateTodos() {
             this.completedTodos = this.todos.filter(item => item.completed);
             this.pendingTodos = this.todos.filter(item => !item.completed);
+        },
+        downloadCSV() {
+            this.$emit('export-started')
+            const dataExport = this.todos
+
+            if (!dataExport) {
+                console.error('No data to export')
+                return
+            }
+
+            let csv = PapaParse.unparse(dataExport, {
+                delimiter: ",",
+                encoding: "utf-8"
+            })
+
+            this.$emit('export-finished')
+            let blob = new Blob([csv], {type: "application/csv;charset=" + this.encoding})
+            saveAs(blob, "data.csv")
         }
     }
 };
