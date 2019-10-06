@@ -33,7 +33,7 @@
                     :columns="columns"
                     default-sort="priority">
                     <template slot-scope="todos">
-                        <b-table-column label="">
+                        <b-table-column label="Completed">
                             <b-checkbox
                                 v-model="todos.row.completed"
                                 value="true"
@@ -41,28 +41,22 @@
                                 @change.native="completeTodo(todos.row)">
                             </b-checkbox>
                         </b-table-column>
-
                         <b-table-column label="No">
                             {{todos.index + 1}}
                         </b-table-column>
-
                         <b-table-column field="title" label="Title" sortable>
                             {{ todos.row.title }}
                         </b-table-column>
-
                         <b-table-column field="id" label="ID" sortable>
                             {{ todos.row.id }}
                         </b-table-column>
-
                         <b-table-column field="note" label="Note" sortable>
                             {{ todos.row.note }}
                         </b-table-column>
-
                         <b-table-column field="priority" label="Priority" sortable>
-                            <div class="priority-dot" :style="{background:todos.row.priorityColor}"></div>
-                            <span>{{ todos.row.priority }}</span>
+                            <div class="priority-dot" :style="{background:showPriorityColor(todos.row.priority)}"></div>
+                            <span>{{ showPrioirityDescription(todos.row.priority) }}</span>
                         </b-table-column>
-
                         <b-table-column label="Action">
                             <b-button
                                 type="is-info" outlined
@@ -83,7 +77,6 @@
                             </b-button>
                         </b-table-column>
                     </template>
-
                     <template slot="empty">
                         <section class="section">
                             <b-message type="is-info">
@@ -169,6 +162,36 @@ export default {
         }
     },
     methods: {
+        showPrioirityDescription(priority) {
+            // set priority description
+            var priotityDescription = "";
+            if (priority == "1") { // High Priority
+                priotityDescription = "High Priority";
+            }
+            else if (priority == "2") { // Medium Priority
+                priotityDescription = "Medium Priority";
+            }
+            else if (priority == "3") { // Low Priority
+                priotityDescription = "Low Priority";
+            }
+
+            return priotityDescription
+        },
+        showPriorityColor(priority) {
+            // set priority color
+            var dotPriorityColor = "#11cdef";
+            if (priority == "1") { // High Priority
+                dotPriorityColor = "#f5365c";
+            }
+            else if (priority == "2") { // Medium Priority
+                dotPriorityColor = "#ffbb33";
+            }
+            else if (priority == "3") { // Low Priority
+                dotPriorityColor = "#5e72e4";
+            }
+
+            return dotPriorityColor
+        },
         openDetailModal(todo) {
             this.selectedTodo = todo;
             this.isDetailModalActive = true;
@@ -184,25 +207,12 @@ export default {
                 highestId = Math.max.apply(Math, this.todos.map(item => item.id));
             }
 
-            // set priority color
-            var dotPriorityColor = "#11cdef";
-            if (item.priority == "High Priority") {
-                dotPriorityColor = "#f5365c";
-            }
-            else if (item.priority == "Medium Priority") {
-                dotPriorityColor = "#ffbb33";
-            }
-            else if (item.priority == "Low Priority") {
-                dotPriorityColor = "#5e72e4";
-            }
-
             // Add the item to the array
             this.todos.push({
                 id: highestId + 1,
                 title: item.title,
                 note: item.note,
                 priority: item.priority,
-                priorityColor: dotPriorityColor,
                 completed: false
             });
             // save the updated array in localstorage

@@ -16,7 +16,7 @@
                 <b-select placeholder="Select a priority" v-model="priority" disabled>
                     <option
                         v-for="option in priorities"
-                        :value="option.name"
+                        :value="option.id"
                         :key="option.id">
                         {{ option.name }}
                     </option>
